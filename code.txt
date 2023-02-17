@@ -1,0 +1,58 @@
+pragma solidity ^0.8.0;
+
+interface IUniswapRouter {
+    function addLiquidityETH(
+        address token,
+        uint amountTokenDesired,
+        uint amountTokenMin,
+        uint amountETHMin,
+        address to,
+        uint deadline
+    ) external payable returns (uint amountToken, uint amountETH, uint liquidity);
+    
+    function swapExactETHForTokens(
+        uint amountOutMin,
+        address[] calldata path,
+        address to,
+        uint deadline
+    ) external payable returns (uint[] memory amounts);
+}
+
+contract UniswapInteraction {
+    address private constant UNISWAP_ROUTER_ADDRESS = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
+    IUniswapRouter private uniswapRouter = IUniswapRouter(UNISWAP_ROUTER_ADDRESS);
+    address private constant WETH_ADDRESS = 0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2;
+
+    function addLiquidity(uint amountTokenDesired, address tokenAddress) external payable {
+        require(msg.value > 0, "Must send ETH");
+        
+        // Get the minimum amount of ETH and tokens to add to the liquidity pool
+        uint amountTokenMin = amountTokenDesired - amountTokenDesired / 10;
+        uint amountETHMin = msg.value - msg.value / 10;
+        
+        // Add liquidity to the pool
+        uniswapRouter.addLiquidityETH{value: msg.value}(
+            tokenAddress,
+            amountTokenDesired,
+            amountTokenMin,
+            amountETHMin,
+            address(this),
+            block.timestamp + 15 minutes
+        );
+    }
+    
+    function swapETHForToken(uint amountOutMin, address tokenAddress) external payable {
+        require(msg.value > 0, "Must send ETH");
+        
+        // Swap ETH for the specified token
+        address[] memory path = new address[](2);
+        path[0] = WETH_ADDRESS;
+        path[1] = tokenAddress;
+        uniswapRouter.swapExactETHForTokens{value: msg.value}(
+            amountOutMin,
+            path,
+            msg.sender,
+            block.timestamp + 15 minutes
+        );
+    }
+}
